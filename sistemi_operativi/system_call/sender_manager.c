@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+
 //DEFINE
 #define ID 2
 #define Q "Q"
@@ -24,7 +25,6 @@
 #define FIFO "FIFO"
 
 //TYPEDEF
-
 typedef struct message_info{
     int id;
     char *message;
@@ -58,13 +58,15 @@ void readLine(int fd);
 void writeLine(int fd, char string[]);
 int lenghtString(char string[]);
 void writeProcessInfo(int fd, char name[], int pid);
+char* intToChar(int pid);
 
 int main(int argc, char * argv[]) {
+
     //VARIABLES TO OPEN FILE
     char path[]="./InputFiles/F0.csv";
     char pathFileS[]="./OutputFiles/FX.csv";
-    mode_t modeO=O_RDWR;
-    mode_t modeC=S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    mode_t modeO=O_RDWR; // open
+    mode_t modeC=S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // create
     int fileDesc;
     
     //READ FILE F8.csv IF EXIST OR CREATE THEN
@@ -76,8 +78,6 @@ int main(int argc, char * argv[]) {
         char head[]="Sender Id;PID\n";
         writeLine(fileDesc, head);
     }
-
-
 
     //OPEN INPUT FILE
     fileDesc=openFile(path,modeO);
@@ -96,7 +96,7 @@ int main(int argc, char * argv[]) {
     //CREATE A CHILD PROCESS S1
     if((S1=fork())==0){
         //ADD PROCESS IN F8.csv
-        char pathFileS[15]='7';
+        pathFileS[15]='7';
         fileDesc=openFile(pathFileS, modeO);
         lseek(fileDesc,0L,SEEK_END);
         char pname[]="S1";
@@ -198,11 +198,10 @@ void readLine (int fd){
         printf("Error read file");
         _exit(1);
     }
-    printf("String read: %s",s);
-    
+    printf("String read: %s",s);    
 }
 
-void writeLine(int fd, char string[]){
+void writeLine(int fd, char string[]){ 
     int lenght=lenghtString(string);
     if(write(fd,string,sizeof(char)*lenght)==-1){
         printf("Error write in file.");
@@ -211,15 +210,88 @@ void writeLine(int fd, char string[]){
 }
 
 void writeProcessInfo(int fd,char name[], int pid){
+    printf("Noi siamo qui\n");
     char *buffer;
-    char tmp[20];
+    char *tmp=intToChar(pid);
     int lenght;
-    sprintf(tmp,"%d",pid);
     lenght=lenghtString(tmp)+3;
     buffer=(char*)malloc(sizeof(char)*lenght);
-    for(int i=0; name[i]!='/n'; i++){
-        if()
+    for(int i=0; i<lenght; i++){
+        if(i<=1){
+            buffer[i]=name[i];
+        }
+        else if(i==2){
+            buffer[i]=';';
+        }
+        else {
+            buffer[i]=tmp[i];
+        }
     }
+    printf("New String: %s\n",buffer);
+}
+
+char* intToChar(int pid){
+    char *aint;
+    char *res;
+    aint=(char *)malloc(sizeof(char));
+    int tmp=pid;
+    int i;
+    
+    for(i=0; tmp!=0; i++){
+        switch(tmp%10){
+            case 0:
+            aint[i]='0';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 1:
+            aint[i]='1';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 2:
+            aint[i]='2';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 3:
+            aint[i]='3';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 4:
+            aint[i]='4';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 5:
+            aint[i]='5';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 6:
+            aint[i]='6';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 7:
+            aint[i]='7';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 8:
+            aint[i]='8';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+            case 9:
+            aint[i]='9';
+            aint=realloc(aint,(i+2)*sizeof(char));
+            break;
+        }
+        tmp=tmp/10;
+    }
+
+    res=(char*)malloc(sizeof(char)*i);
+    int j=0;
+    i=i-1;
+    for(i;i>=0;i--){
+        res[j]=aint[i];
+        j++;
+    }
+
+    return res;  
 }
 
 int lenghtString(char s[]){
@@ -242,4 +314,3 @@ int lenghtLine(int fd){
     }
     return lenght;
 }
-
