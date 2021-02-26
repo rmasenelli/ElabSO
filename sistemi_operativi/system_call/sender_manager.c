@@ -45,8 +45,8 @@ typedef struct clocktime{
 typedef struct sender_traffic_info{
     int id;
     char *message;
-    int id_sender;
-    int id_reciver;
+    char* id_sender;
+    char* id_reciver;
     time_t time_arrival;
     time_t time_depart;
 }sender_traffic_info_t;
@@ -67,6 +67,8 @@ void writeProcessInfo(int fd, char name[], int pid);
 char* intToChar(int pid);
 char* readInformation(int *index, int *lenght, char* info);
 int charToInt(char* string, int *lenght);
+sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t messageinfo);
+char* getStringBySenderInfo(sender_traffic_info_t info);
 
 message_info_t getInformationByLine(char* line);
 int main(int argc, char * argv[]) {
@@ -121,6 +123,9 @@ int main(int argc, char * argv[]) {
         else if(mesInfo.id_sender[1]=='3'){
             sendToS3=mesInfo;
         }
+        sender_traffic_info_t send=getSenderInfoByMessageInfo(mesInfo);
+        char *buffer=getStringBySenderInfo(send);
+        
         
         exit(0);
     }
@@ -261,6 +266,24 @@ int main(int argc, char * argv[]) {
     return 0;
 }
 
+char* getStringBySenderInfo(sender_traffic_info_t info){
+    char *string;
+
+    
+    
+}
+
+
+sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t im){
+    sender_traffic_info_t senderInfo;
+    senderInfo.id=im.id;
+    senderInfo.message=im.message;
+    senderInfo.id_sender=im.id_sender;
+    senderInfo.id_reciver=im.id_reciver;
+    return senderInfo;
+}
+
+
 message_info_t getInformationByLine(char* info){
     int index=0;
     int lenghtInf=0;
@@ -377,8 +400,8 @@ char* intToChar(int pid){
     int i;
     
     for(i=0; tmp!=0; i++){
+        aint=realloc(aint,(i+1)*sizeof(char));
         aint[i]=((tmp%10)+48);
-        aint=realloc(aint,(i+2)*sizeof(char));
         tmp=tmp/10;
     }
     
@@ -389,15 +412,14 @@ char* intToChar(int pid){
         res[j]=aint[i];
         j++;
     }
-    res[j]='\n';
     return res;  
 }
 
 int lenghtString(char s[]){
     int i=0;
-    for(i; s[i]!='\n'; i++){
+    for(i; s[i]!='\0'; i++){
     }
-    return (i+1);
+    return (i);
 }
 
 int lenghtLine(int fd){
