@@ -44,7 +44,7 @@ typedef struct clocktime{
 
 typedef struct sender_traffic_info{
     int id;
-    char *message;
+    char* message;
     char* id_sender;
     char* id_reciver;
     time_t time_arrival;
@@ -69,12 +69,10 @@ char* readInformation(int *index, int *lenght, char* info);
 int charToInt(char* string, int *lenght);
 sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t messageinfo);
 char* getStringBySenderInfo(sender_traffic_info_t info);
+void concatStringInfo(char* string1, char* string2);
 
 message_info_t getInformationByLine(char* line);
 int main(int argc, char * argv[]) {
-    //VARIABLES TO SAVE INFORMATION MESSAGE
-    message_info_t sendToS2;
-    message_info_t sendToS3;
     //VARIABLES TO OPEN FILE
     char pathFileI[]="./InputFiles/FX.csv";
     char pathFileO[]="./OutputFiles/FX.csv";
@@ -115,18 +113,12 @@ int main(int argc, char * argv[]) {
         readLine(fileDescI);
         char* info=readLine(fileDescI);
         printf("Reading information...");
-        printf("%s",info);
         mesInfo=getInformationByLine(info);
-        if(mesInfo.id_sender[1]=='2'){
-            sendToS2=mesInfo;
-        }
-        else if(mesInfo.id_sender[1]=='3'){
-            sendToS3=mesInfo;
-        }
         sender_traffic_info_t send=getSenderInfoByMessageInfo(mesInfo);
         char *buffer=getStringBySenderInfo(send);
-        
-        
+        printf("%s\n",buffer);
+        printf("Start writing info message on %s\n",pathFileO);
+        writeLine(fileDesc,buffer);
         exit(0);
     }
     else{
@@ -268,11 +260,37 @@ int main(int argc, char * argv[]) {
 
 char* getStringBySenderInfo(sender_traffic_info_t info){
     char *string;
-
-    
-    
+    char *tmp;
+    char *in;
+    string=intToChar(info.id);
+    tmp=info.message;
+    concatStringInfo(string,tmp);
+    tmp=info.id_sender;
+    concatStringInfo(string,tmp);
+    tmp=info.id_reciver;
+    concatStringInfo(string,tmp);
+    concatStringInfo(string,"\n");
+    return string;
 }
 
+void concatStringInfo(char *string1, char* string2){
+    int i;
+    int j;
+    int max=lenghtString(string1)+lenghtString(string2);
+    int fw=lenghtString(string1);
+    string1=realloc(string1,sizeof(char)*(max+2));
+    for(i=lenghtString(string1),j=0; i<=max; i++,j++){
+        if(i==fw){
+            string1[i]=';';//OVERWRITE END OF STRING
+            j--;
+        }
+        else{
+            string1[i]=string2[j];
+        }
+    }
+    string1[i]='\0';
+
+}
 
 sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t im){
     sender_traffic_info_t senderInfo;
@@ -305,6 +323,7 @@ message_info_t getInformationByLine(char* info){
     printf("Del S2: %i\n",mes.del_S2);
     printf("Del S3: %i\n",mes.del_S3);
     printf("Type send message: %s\n",mes.type);
+    return mes;
 
 }
 
@@ -412,7 +431,7 @@ char* intToChar(int pid){
         res[j]=aint[i];
         j++;
     }
-    return res;  
+    return res;
 }
 
 int lenghtString(char s[]){
