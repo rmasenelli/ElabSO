@@ -84,7 +84,7 @@ int main(int argc, char * argv[]) {
     
 
     //OPEN FILE F8.csv IF EXIST-OR CREATE THEN
-    pathFileO[15]='7';
+    pathFileO[15]='8';
     fileDesc=openFile(pathFileO,modeO);
     if(fileDesc==-1){
         printf("File not Exist..\nCreate a new file F8.csv");
@@ -99,7 +99,7 @@ int main(int argc, char * argv[]) {
     if((S1=fork())==0){
         signal(SIGCONT,startprocess);
         pause();
-        printf("S1...\n");
+        printf("S1...\n\n");
         pathFileO[15]='1';
         pathFileI[14]='0';
         int fileDescI;
@@ -113,15 +113,21 @@ int main(int argc, char * argv[]) {
         fileDesc=openFile(pathFileO,modeO);
         fileDescI=openFile(pathFileI, modeO);
         readLine(fileDescI);
-        char* info=readLine(fileDescI);
-        printf("Reading information...");
-        mesInfo=getInformationByLine(info);
-        sender_traffic_info_t send=getSenderInfoByMessageInfo(mesInfo);
-        char *buffer=getStringBySenderInfo(send);
-        printf("%s\n",buffer);
-        printf("Start writing info message on %s\n",pathFileO);
-        setPointerToEndFile(fileDesc);
-        writeLine(fileDesc,buffer);
+        off_t end=lseek(fileDescI,0L,SEEK_END);
+        off_t start=lseek(fileDesc,0L,SEEK_SET);
+        while(start!=end){
+            char* info=readLine(fileDescI);
+            start=lseek(fileDesc,0L,SEEK_CUR);
+            printf("Reading information...");
+            mesInfo=getInformationByLine(info);
+            sender_traffic_info_t send=getSenderInfoByMessageInfo(mesInfo);
+            char *buffer=getStringBySenderInfo(send);
+            printf("%s\n",buffer);
+            printf("Start writing info message on %s\n",pathFileO);
+            setPointerToEndFile(fileDesc);
+            writeLine(fileDesc,buffer);
+        }
+        sleep(1);
         exit(0);
     }
     else{
@@ -131,8 +137,8 @@ int main(int argc, char * argv[]) {
             _exit(1);
         }
         printf("Process ID Parents: %i\n", getpid());
-        pathFileO[15]='7';
-        fileDesc=openFile(pathFileO, modeO);
+        pathFileO[15]='8';
+        fileDesc=openFile(pathFileO,modeO);
         lseek(fileDesc,0L,SEEK_END);
         char pname[]="S1";
         writeProcessInfo(fileDesc,pname,S1);
@@ -142,7 +148,27 @@ int main(int argc, char * argv[]) {
     //CREATE CHILD PROCESS S2 
     pid_t S2;
     if((S2=fork())==0){
+        signal(SIGCONT,startprocess);
         pause();
+        printf("S2\n\n");
+        pathFileO[15]='2';
+        char firstLine[]="Id;Message;Id Sender;Id Reciver;Time arrival;Time Depart.\n";
+        int create;
+        int open;
+        if(openFile(pathFileO,modeO)==-1){//IF FILE NOT EXIST, CREATE NEW FILE
+            printf("\nCreate a new File F2.csv.\n");
+            if(create=creat(pathFileO, modeC)==-1){
+                printf("Error: Create a file");
+                _exit(1);
+            }
+            open=openFile(pathFileO, modeO); 
+            if(open==-1){
+                _exit(1);
+            }
+            writeLine(open, firstLine);
+            printf("Done!\n");
+        }
+        sleep(2);
         exit(0);
     }
     else{
@@ -151,7 +177,7 @@ int main(int argc, char * argv[]) {
             printf("Error Create a process");
             _exit(1);
         }
-        pathFileO[15]='7';
+        pathFileO[15]='8';
         fileDesc=openFile(pathFileO, modeO);
         lseek(fileDesc,0L,SEEK_END);
         char pname[]="S2";
@@ -162,7 +188,27 @@ int main(int argc, char * argv[]) {
     //CREATE CHILD PROCESS S3
     pid_t S3;
     if((S3=fork())==0){
+        signal(SIGCONT, startprocess);
         pause();
+        printf("S3\n\n");
+        pathFileO[15]='3';
+        char firstLine[]="Id;Message;Id Sender;Id Reciver;Time arrival;Time Depart.\n";
+        int create;
+        int open;
+        if(openFile(pathFileO,modeO)==-1){//IF FILE NOT EXIST, CREATE NEW FILE
+            printf("\nCreate a new File F3.csv.\n");
+            if(create=creat(pathFileO, modeC)==-1){
+                printf("Error: Create a file");
+                _exit(1);
+            }
+            open=openFile(pathFileO, modeO); 
+            if(open==-1){
+                _exit(1);
+            }
+            writeLine(open, firstLine);
+            printf("Done!\n");
+        }
+        sleep(3);
         exit(0);
     }
     else{
@@ -171,7 +217,7 @@ int main(int argc, char * argv[]) {
             _exit(1);
         }
         //WRITE PROCESS ID ON FILE BY PARENT (SENEDER MANAGER)
-        pathFileO[15]='7';
+        pathFileO[15]='8';
         fileDesc=openFile(pathFileO, modeO);
         lseek(fileDesc,0L,SEEK_END);
         char pname[]="S3";
@@ -181,83 +227,11 @@ int main(int argc, char * argv[]) {
     printf("All child process ready!\n");
     sleep(1);
     kill(S1, SIGCONT);
-   /*
-    if((S1=fork())==0){
-        
-        pathFileS[15]='1';
-        char firstLine[]="Id;Message;Id Sender;Id Reciver;Time arrival;Time Depart.\n";
-        int create;
-        int open;
-        if(openFile(pathFileS,modeO)==-1){//IF FILE NOT EXIST, CREATE NEW FILE
-            printf("Create a new File F1.csv.\n");
-            if(create=creat(pathFileS, modeC)==-1){
-                printf("Error: Create a file");
-                _exit(1);
-            }
-            open=openFile(pathFileS, modeO); 
-            if(open==-1){
-                _exit(1);
-            }
-            writeLine(open, firstLine);
-            printf("Done!\n");
-        }
-        S1=getpid();
-        kill(S1,SIGKILL);
-        }
-    
-    //wait(0);
-
-    //CREATE A CHILD PROCESS S2
-    if((S2=fork())==0){
-        pathFileS[15]='2';
-        char firstLine[]="Id;Message;Id Sender;Id Reciver;Time arrival;Time Depart.\n";
-        int create;
-        int open;
-        mode_t modeO=O_RDWR;
-        mode_t modeC=S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-        if(openFile(pathFileS,modeO)==-1){
-            printf("Create a new File F2.csv.\n");
-            if(create=creat(pathFileS, modeC)==-1){
-                printf("Error: Create a file");
-                _exit(1);
-            }
-            open=openFile(pathFileS, modeO); 
-            if(open==-1){
-                _exit(1);
-            }
-            writeLine(open, firstLine);
-            printf("Done!\n");
-        }
-        S2=getpid();
-        kill(S2,SIGKILL);
-    }
-    
-
-    //CREATE A PROCESS CHILD S3
-    if((S3=fork())==0){
-        pathFileS[15]='3';
-        char firstLine[]="Id;Message;Id Sender;Id Reciver;Time arrival;Time Depart.\n";
-        int create;
-        int open;
-        mode_t modeO=O_RDWR;
-        mode_t modeC=S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-        if(openFile(pathFileS,modeO)==-1){
-            printf("Create a new File F3.csv.\n");
-            if(create=creat(pathFileS, modeC)==-1){
-                printf("Error: Create a file");
-                _exit(1);
-            }
-            open=openFile(pathFileS, modeO); 
-            if(open==-1){
-                _exit(1);
-            }
-            writeLine(open, firstLine);
-            printf("Done!\n");
-        }
-        S3=getpid();
-        kill(S3,SIGKILL);
-    }
-    */
+    wait(0);
+    kill(S2, SIGCONT);
+    wait(0);
+    kill(S3, SIGCONT);
+    wait(0);
     return 0;
 }
 
@@ -276,6 +250,7 @@ char* getStringBySenderInfo(sender_traffic_info_t info){
     concatStringInfo(string,tmp);
     tmp=intToChar(info.id_reciver);
     concatStringInfo(string,tmp);
+    
     concatStringInfo(string,"\n");
     return string;
 }
@@ -305,6 +280,7 @@ sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t im){
     senderInfo.message=im.message;
     senderInfo.id_sender=charToInt(cutCharInInt(im.id_sender));
     senderInfo.id_reciver=charToInt(cutCharInInt(im.id_reciver));
+
     return senderInfo;
 }
 
