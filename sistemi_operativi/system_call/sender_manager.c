@@ -45,8 +45,8 @@ typedef struct clocktime{
 typedef struct sender_traffic_info{
     int id;
     char* message;
-    char* id_sender;
-    char* id_reciver;
+    int id_sender;
+    int id_reciver;
     time_t time_arrival;
     time_t time_depart;
 }sender_traffic_info_t;
@@ -66,10 +66,12 @@ int lenghtString(char string[]);
 void writeProcessInfo(int fd, char name[], int pid);
 char* intToChar(int pid);
 char* readInformation(int *index, int *lenght, char* info);
-int charToInt(char* string, int *lenght);
+int charToInt(char* string);
 sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t messageinfo);
 char* getStringBySenderInfo(sender_traffic_info_t info);
 void concatStringInfo(char* string1, char* string2);
+char* cutCharInInt(char * string);
+void setPointerToEndFile(int fd);
 
 message_info_t getInformationByLine(char* line);
 int main(int argc, char * argv[]) {
@@ -118,6 +120,7 @@ int main(int argc, char * argv[]) {
         char *buffer=getStringBySenderInfo(send);
         printf("%s\n",buffer);
         printf("Start writing info message on %s\n",pathFileO);
+        setPointerToEndFile(fileDesc);
         writeLine(fileDesc,buffer);
         exit(0);
     }
@@ -258,6 +261,10 @@ int main(int argc, char * argv[]) {
     return 0;
 }
 
+void setPointerToEndFile(int fd){
+    lseek(fd, 0L, SEEK_END);
+}
+
 char* getStringBySenderInfo(sender_traffic_info_t info){
     char *string;
     char *tmp;
@@ -265,9 +272,9 @@ char* getStringBySenderInfo(sender_traffic_info_t info){
     string=intToChar(info.id);
     tmp=info.message;
     concatStringInfo(string,tmp);
-    tmp=info.id_sender;
+    tmp=intToChar(info.id_sender);
     concatStringInfo(string,tmp);
-    tmp=info.id_reciver;
+    tmp=intToChar(info.id_reciver);
     concatStringInfo(string,tmp);
     concatStringInfo(string,"\n");
     return string;
@@ -296,23 +303,40 @@ sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t im){
     sender_traffic_info_t senderInfo;
     senderInfo.id=im.id;
     senderInfo.message=im.message;
-    senderInfo.id_sender=im.id_sender;
-    senderInfo.id_reciver=im.id_reciver;
+    senderInfo.id_sender=charToInt(cutCharInInt(im.id_sender));
+    senderInfo.id_reciver=charToInt(cutCharInInt(im.id_reciver));
     return senderInfo;
 }
 
+char* cutCharInInt(char * string){
+    int l=lenghtString(string);
+    int i;
+    int newl=0;
+    char *res=malloc(sizeof(char));
+    for(i=0; i<l;i++){
+        if(string[i]>=48 && string[i]<=57){
+            ++newl;
+            res=realloc(res,sizeof(char)*l);
+            res[newl-1]=string[i];
+        }
+    }
+    ++newl;
+    res=realloc(res,sizeof(char)*newl);
+    res[newl-1]='\0';
+    return res;
+}
 
 message_info_t getInformationByLine(char* info){
     int index=0;
     int lenghtInf=0;
     message_info_t mes;
-    mes.id=charToInt(readInformation(&index,&lenghtInf,info),&lenghtInf);
+    mes.id=charToInt(readInformation(&index,&lenghtInf,info));
     mes.message=readInformation(&index,&lenghtInf,info);
     mes.id_sender=readInformation(&index,&lenghtInf,info);
     mes.id_reciver=readInformation(&index,&lenghtInf, info);
-    mes.del_S1=charToInt(readInformation(&index,&lenghtInf,info),&lenghtInf);
-    mes.del_S2=charToInt(readInformation(&index,&lenghtInf,info),&lenghtInf);
-    mes.del_S3=charToInt(readInformation(&index,&lenghtInf,info),&lenghtInf);
+    mes.del_S1=charToInt(readInformation(&index,&lenghtInf,info));
+    mes.del_S2=charToInt(readInformation(&index,&lenghtInf,info));
+    mes.del_S3=charToInt(readInformation(&index,&lenghtInf,info));
     mes.type=readInformation(&index,&lenghtInf,info);
     printf("Read Complete!\n");
     printf("ID Message: %i\n",mes.id);
@@ -329,29 +353,28 @@ message_info_t getInformationByLine(char* info){
 
 char* readInformation(int *index, int *lenght, char* info){
     char *tmp;
+    tmp=(char*)malloc(sizeof(char));
+
     for(*lenght=0,*index; info[*index]!=';' && info[*index]!='\n'; *index=*index+1,*lenght=*lenght+1){
-        if(*lenght==0){
-            tmp=(char*)malloc(sizeof(char));
-            tmp[*lenght]=info[*index];
-        }
-        else{
-            tmp=realloc(tmp,sizeof(char)*(*lenght+1));
-            tmp[*lenght]=info[*index];
-        }
+        tmp=realloc(tmp,sizeof(char)*(*lenght+1));
+        tmp[*lenght]=info[*index];
     }
     *index=*index+1;
+    tmp=realloc(tmp,sizeof(char)*(*lenght+1));
+    tmp[*lenght]='\0';
     return tmp;
 }
 
-int charToInt(char* string, int *lenght){
+int charToInt(char* string){
     int res=0;
-    for(int i=*lenght-1; i>=0; i--){
-        if(i==*lenght-1){
+    int lenght=lenghtString(string);
+    for(int i=lenght-1; i>=0; i--){
+        if(i==lenght-1){
             res=string[i];
             res=res-48;
         }
         else {
-            int n=*lenght-1;
+            int n=lenght-1;
             int molt=1;
             while(n!=i){
                 molt=molt*10;
@@ -394,10 +417,10 @@ void writeLine(int fd, char string[]){
 void writeProcessInfo(int fd,char name[], int pid){
     char *buffer;
     char *tmp=intToChar(pid);
-    int lenght;
+    int lenght,i=0;
     lenght=lenghtString(tmp)+4;
     buffer=(char*)malloc(sizeof(char)*lenght);
-    for(int i=0; i<lenght; i++){
+    for(i; i<(lenght-1); i++){
         if(i<=1){
             buffer[i]=name[i];
         }
@@ -408,6 +431,7 @@ void writeProcessInfo(int fd,char name[], int pid){
             buffer[i]=tmp[i-3];
         }
     }
+    buffer[i]='\n';
     writeLine(fd,buffer);
 }
 
