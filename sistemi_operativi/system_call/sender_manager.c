@@ -36,19 +36,13 @@ typedef struct message_info{
     char *type;
 }message_info_t;
 
-typedef struct clocktime{
-    int hour;
-    int min;
-    int sec;
-}clocktime_t;
-
 typedef struct sender_traffic_info{
     int id;
     char* message;
     int id_sender;
     int id_reciver;
-    time_t time_arrival;
-    time_t time_depart;
+    char* time_arrival;
+    char* time_depart;
 }sender_traffic_info_t;
 
 
@@ -72,6 +66,8 @@ char* getStringBySenderInfo(sender_traffic_info_t info);
 void concatStringInfo(char* string1, char* string2);
 char* cutCharInInt(char * string);
 void setPointerToEndFile(int fd);
+char* computeTime1();
+void concatString(char * string1, char* string2);
 
 message_info_t getInformationByLine(char* line);
 int main(int argc, char * argv[]) {
@@ -112,9 +108,9 @@ int main(int argc, char * argv[]) {
         message_info_t mesInfo;
         fileDesc=openFile(pathFileO,modeO);
         fileDescI=openFile(pathFileI, modeO);
-        readLine(fileDescI);
         off_t end=lseek(fileDescI,0L,SEEK_END);
-        off_t start=lseek(fileDesc,0L,SEEK_SET);
+        off_t start=lseek(fileDescI,0L,SEEK_SET);
+        readLine(fileDescI);
         while(start!=end){
             char* info=readLine(fileDescI);
             start=lseek(fileDesc,0L,SEEK_CUR);
@@ -250,7 +246,6 @@ char* getStringBySenderInfo(sender_traffic_info_t info){
     concatStringInfo(string,tmp);
     tmp=intToChar(info.id_reciver);
     concatStringInfo(string,tmp);
-    
     concatStringInfo(string,"\n");
     return string;
 }
@@ -280,7 +275,8 @@ sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t im){
     senderInfo.message=im.message;
     senderInfo.id_sender=charToInt(cutCharInInt(im.id_sender));
     senderInfo.id_reciver=charToInt(cutCharInInt(im.id_reciver));
-
+    senderInfo.time_arrival=computeTime1();
+    senderInfo.time_depart=computeTime1();
     return senderInfo;
 }
 
@@ -453,4 +449,35 @@ int lenghtLine(int fd){
         _exit(1);
     }
     return lenght;
+}
+
+char* computeTime1(){
+    time_t rawtime;
+    time( &rawtime );
+    struct tm * timeinfo;
+    timeinfo =localtime(&rawtime);
+    char* timeString=(char*)malloc(sizeof(char));
+    timeString[0]='\0';
+    concatString(timeString,intToChar(timeinfo->tm_hour));
+    concatString(timeString,intToChar(timeinfo->tm_min));
+    concatString(timeString,intToChar(timeinfo->tm_sec));
+    return timeString;
+}
+
+void concatString(char * string1, char* string2){
+    int i;
+    int j;
+    int max=lenghtString(string1)+lenghtString(string2);
+    int fw=lenghtString(string1);
+    string1=realloc(string1,sizeof(char)*(max+2));
+    for(i=lenghtString(string1),j=0; i<=max; i++,j++){
+        if(i==fw && lenghtString(string1)!=0){
+            string1[i]=':';//OVERWRITE END OF STRING
+            j--;
+        }
+        else{
+            string1[i]=string2[j];
+        }
+    }
+    string1[i]='\0';
 }
