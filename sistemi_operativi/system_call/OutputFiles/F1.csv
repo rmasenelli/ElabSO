@@ -1,8 +1,8 @@
 Id;Message;Id Sender;Id Reciver;Time arrival;Time Depart.
-1;Ciao;3;2;
-2;Come va?;2;2;
-3;MyMsg;3;3;
-1;Ciao;3;2;
-2;Come va?;2;2;
-3;MyMsg;3;3;
-ZUUU;
+1;Ciao;3;2;2:59:57;2:59:57
+2;Come va?;2;2;2:59:57;2:59:57
+3;MyMsg;3;3;2:59:57;2:59:57
+1;Ciao;3;2;3:3:2;3:3:2
+2;Come va?;2;2;3:3:2;3:3:2
+3;MyMsg;3;3;3:3:2;3:3:2
+!

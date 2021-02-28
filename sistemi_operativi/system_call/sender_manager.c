@@ -54,20 +54,20 @@ void startprocess(int signal){
 
 int lenghtLine(int fd);
 int openFile(char pathFile[], mode_t mode);
-char* readLine(int fd);
+char* readLine(int fd, char * string);
 void writeLine(int fd, char string[]);
 int lenghtString(char string[]);
 void writeProcessInfo(int fd, char name[], int pid);
-char* intToChar(int pid);
-char* readInformation(int *index, int *lenght, char* info);
+char* intToChar(int pid, char* string);
+char* readInformation(int *index, int *lenght, char* info, char* string);
 int charToInt(char* string);
 sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t messageinfo);
-char* getStringBySenderInfo(sender_traffic_info_t info);
-void concatStringInfo(char* string1, char* string2);
-char* cutCharInInt(char * string);
+char* getStringBySenderInfo(sender_traffic_info_t info, char* string);
+char* concatStringInfo(char* string1, char* string2);
+char* cutCharInInt(char * info, char* string);
 void setPointerToEndFile(int fd);
-char* computeTime1();
-void concatString(char * string1, char* string2);
+char* computeTime(char * timeString);
+char* concatStringTime(char * string1, char* string2);
 
 message_info_t getInformationByLine(char* line);
 int main(int argc, char * argv[]) {
@@ -110,14 +110,14 @@ int main(int argc, char * argv[]) {
         fileDescI=openFile(pathFileI, modeO);
         off_t end=lseek(fileDescI,0L,SEEK_END);
         off_t start=lseek(fileDescI,0L,SEEK_SET);
-        readLine(fileDescI);
+        readLine(fileDescI,"*");
         while(start!=end){
-            char* info=readLine(fileDescI);
-            start=lseek(fileDesc,0L,SEEK_CUR);
+            char* info=readLine(fileDescI, info);
+            start=lseek(fileDescI,0L,SEEK_CUR);
             printf("Reading information...");
             mesInfo=getInformationByLine(info);
             sender_traffic_info_t send=getSenderInfoByMessageInfo(mesInfo);
-            char *buffer=getStringBySenderInfo(send);
+            char *buffer=getStringBySenderInfo(send, buffer);
             printf("%s\n",buffer);
             printf("Start writing info message on %s\n",pathFileO);
             setPointerToEndFile(fileDesc);
@@ -235,22 +235,26 @@ void setPointerToEndFile(int fd){
     lseek(fd, 0L, SEEK_END);
 }
 
-char* getStringBySenderInfo(sender_traffic_info_t info){
-    char *string;
+char* getStringBySenderInfo(sender_traffic_info_t info, char *string){
     char *tmp;
     char *in;
-    string=intToChar(info.id);
+    string=intToChar(info.id,string);
     tmp=info.message;
-    concatStringInfo(string,tmp);
-    tmp=intToChar(info.id_sender);
-    concatStringInfo(string,tmp);
-    tmp=intToChar(info.id_reciver);
-    concatStringInfo(string,tmp);
-    concatStringInfo(string,"\n");
+    string=concatStringInfo(string,tmp);
+    tmp=intToChar(info.id_sender,tmp);
+    string=concatStringInfo(string,tmp);
+    tmp=intToChar(info.id_reciver,tmp);
+    string=concatStringInfo(string,tmp);
+    tmp=info.time_arrival;
+    string=concatStringInfo(string,tmp);
+    tmp=info.time_depart;
+    string=concatStringInfo(string,tmp);
+    int len=lenghtString(string);
+    string[len]='\n';
     return string;
 }
 
-void concatStringInfo(char *string1, char* string2){
+char* concatStringInfo(char *string1, char* string2){
     int i;
     int j;
     int max=lenghtString(string1)+lenghtString(string2);
@@ -266,50 +270,57 @@ void concatStringInfo(char *string1, char* string2){
         }
     }
     string1[i]='\0';
-
+    return string1;
 }
 
 sender_traffic_info_t getSenderInfoByMessageInfo(message_info_t im){
     sender_traffic_info_t senderInfo;
+    char *tmp;
     senderInfo.id=im.id;
     senderInfo.message=im.message;
-    senderInfo.id_sender=charToInt(cutCharInInt(im.id_sender));
-    senderInfo.id_reciver=charToInt(cutCharInInt(im.id_reciver));
-    senderInfo.time_arrival=computeTime1();
-    senderInfo.time_depart=computeTime1();
+    senderInfo.id_sender=charToInt(cutCharInInt(im.id_sender,tmp));
+    free(tmp);
+    senderInfo.id_reciver=charToInt(cutCharInInt(im.id_reciver,tmp));
+    free(tmp);
+    senderInfo.time_arrival=computeTime(senderInfo.time_arrival);
+    senderInfo.time_depart=computeTime(senderInfo.time_depart);
     return senderInfo;
 }
 
-char* cutCharInInt(char * string){
-    int l=lenghtString(string);
+char* cutCharInInt(char * info, char * string){
+    int l=lenghtString(info);
     int i;
     int newl=0;
-    char *res=malloc(sizeof(char));
+    string=malloc(sizeof(char));
     for(i=0; i<l;i++){
-        if(string[i]>=48 && string[i]<=57){
+        if(info[i]>=48 && info[i]<=57){
             ++newl;
-            res=realloc(res,sizeof(char)*l);
-            res[newl-1]=string[i];
+            string=realloc(string,sizeof(char)*l);
+            string[newl-1]=info[i];
         }
     }
     ++newl;
-    res=realloc(res,sizeof(char)*newl);
-    res[newl-1]='\0';
-    return res;
+    string=realloc(string,sizeof(char)*newl);
+    string[newl-1]='\0';
+    return string;
 }
 
 message_info_t getInformationByLine(char* info){
     int index=0;
     int lenghtInf=0;
+    char *tmp;
     message_info_t mes;
-    mes.id=charToInt(readInformation(&index,&lenghtInf,info));
-    mes.message=readInformation(&index,&lenghtInf,info);
-    mes.id_sender=readInformation(&index,&lenghtInf,info);
-    mes.id_reciver=readInformation(&index,&lenghtInf, info);
-    mes.del_S1=charToInt(readInformation(&index,&lenghtInf,info));
-    mes.del_S2=charToInt(readInformation(&index,&lenghtInf,info));
-    mes.del_S3=charToInt(readInformation(&index,&lenghtInf,info));
-    mes.type=readInformation(&index,&lenghtInf,info);
+    mes.id=charToInt(readInformation(&index,&lenghtInf,info,tmp));
+    free(tmp);
+    mes.message=readInformation(&index,&lenghtInf,info,mes.message);
+    mes.id_sender=readInformation(&index,&lenghtInf,info,mes.id_sender);
+    mes.id_reciver=readInformation(&index,&lenghtInf,info,mes.id_reciver);
+    mes.del_S1=charToInt(readInformation(&index,&lenghtInf,info,tmp));
+    free(tmp);
+    mes.del_S2=charToInt(readInformation(&index,&lenghtInf,info,tmp));
+    free(tmp);
+    mes.del_S3=charToInt(readInformation(&index,&lenghtInf,info,tmp));
+    mes.type=readInformation(&index,&lenghtInf,info,mes.type);
     printf("Read Complete!\n");
     printf("ID Message: %i\n",mes.id);
     printf("Message: %s\n",mes.message);
@@ -323,21 +334,23 @@ message_info_t getInformationByLine(char* info){
 
 }
 
-char* readInformation(int *index, int *lenght, char* info){
-    char *tmp;
-    tmp=(char*)malloc(sizeof(char));
+char* readInformation(int *index, int *lenght, char* info, char* string){
+    string=(char*)malloc(sizeof(char));
 
     for(*lenght=0,*index; info[*index]!=';' && info[*index]!='\n'; *index=*index+1,*lenght=*lenght+1){
-        tmp=realloc(tmp,sizeof(char)*(*lenght+1));
-        tmp[*lenght]=info[*index];
+        string=realloc(string,sizeof(char)*(*lenght+1));
+        string[*lenght]=info[*index];
     }
     *index=*index+1;
-    tmp=realloc(tmp,sizeof(char)*(*lenght+1));
-    tmp[*lenght]='\0';
-    return tmp;
+    string=realloc(string,sizeof(char)*(*lenght+1));
+    string[*lenght]='\0';
+    return string;
 }
 
 int charToInt(char* string){
+    if(string[0]=='-'){
+        return 0;
+    }
     int res=0;
     int lenght=lenghtString(string);
     for(int i=lenght-1; i>=0; i--){
@@ -368,7 +381,7 @@ int openFile(char pathFile[], mode_t mode){
     return fd;
 }
 
-char* readLine (int fd){
+char* readLine (int fd, char * string){
     int l=lenghtLine(fd);
     char *s=(char *)malloc(sizeof(char)*l);
     if(read(fd,s,l)==-1){
@@ -388,7 +401,7 @@ void writeLine(int fd, char string[]){
 
 void writeProcessInfo(int fd,char name[], int pid){
     char *buffer;
-    char *tmp=intToChar(pid);
+    char *tmp=intToChar(pid, tmp);
     int lenght,i=0;
     lenght=lenghtString(tmp)+4;
     buffer=(char*)malloc(sizeof(char)*lenght);
@@ -407,7 +420,7 @@ void writeProcessInfo(int fd,char name[], int pid){
     writeLine(fd,buffer);
 }
 
-char* intToChar(int pid){
+char* intToChar(int pid, char * string){
     char *aint;
     char *res;
     aint=(char *)malloc(sizeof(char));
@@ -420,14 +433,15 @@ char* intToChar(int pid){
         tmp=tmp/10;
     }
     
-    res=(char*)malloc(sizeof(char)*(i+1));
+    string=(char*)malloc(sizeof(char)*(i+1));
+    string[i]='\0';
     int j=0;
     i=i-1;
     for(i;i>=0;i--){
-        res[j]=aint[i];
+        string[j]=aint[i];
         j++;
     }
-    return res;
+    return string;
 }
 
 int lenghtString(char s[]){
@@ -451,28 +465,31 @@ int lenghtLine(int fd){
     return lenght;
 }
 
-char* computeTime1(){
-    time_t rawtime;
-    time( &rawtime );
-    struct tm * timeinfo;
-    timeinfo =localtime(&rawtime);
-    char* timeString=(char*)malloc(sizeof(char));
-    timeString[0]='\0';
-    concatString(timeString,intToChar(timeinfo->tm_hour));
-    concatString(timeString,intToChar(timeinfo->tm_min));
-    concatString(timeString,intToChar(timeinfo->tm_sec));
+char* computeTime(char * timeString){
+    time_t t=time(NULL);
+    timeString=(char*)malloc(sizeof(char));
+    char *ti=(char*)malloc(sizeof(char));
+    struct tm * lt= localtime(&t); 
+    printf("\n%i:",lt->tm_hour);
+    printf("%i:",lt->tm_min);
+    printf("%i\n",lt->tm_sec);
+    timeString=intToChar(lt->tm_hour,timeString);
+    timeString=concatStringTime(timeString,intToChar(lt->tm_min,ti));
+    free(ti);
+    timeString=concatStringTime(timeString,intToChar(lt->tm_sec,ti));
+    free(ti);
     return timeString;
 }
 
-void concatString(char * string1, char* string2){
+char* concatStringTime(char * string1, char* string2){
     int i;
     int j;
     int max=lenghtString(string1)+lenghtString(string2);
     int fw=lenghtString(string1);
     string1=realloc(string1,sizeof(char)*(max+2));
     for(i=lenghtString(string1),j=0; i<=max; i++,j++){
-        if(i==fw && lenghtString(string1)!=0){
-            string1[i]=':';//OVERWRITE END OF STRING
+        if(string1[fw]=='\0' && fw!=0){
+            string1[i]=':';
             j--;
         }
         else{
@@ -480,4 +497,5 @@ void concatString(char * string1, char* string2){
         }
     }
     string1[i]='\0';
+    return string1;
 }
